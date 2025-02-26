@@ -1,0 +1,291 @@
+{% extends 'api/base.html' %}
+{% load static %}
+
+{% block title %}Playing {{ quiz.quiz_name }}{% endblock %}
+
+{% block content %}
+<div class="play-quiz container">
+    <div class="quiz-header">
+        <h2>Player: {{ player_name }}</h2>
+        <div id="timer" class="timer">--</div>
+    </div>
+
+    <div id="question-container" class="question-container">
+        <h3 id="question-text" class="question-text"></h3>
+        <div id="options-container" class="options-container"></div>
+    </div>
+
+    <div id="result-container" class="result-container hidden">
+        <h3>Answer Submitted!</h3>
+        <div id="waiting-message">Waiting for other players...</div>
+    </div>
+</div>
+
+<style>
+.play-quiz {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 1rem;
+}
+
+.quiz-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.timer {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.question-container {
+    background: #f8f9fa;
+    padding: 2rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+
+.question-text {
+    font-size: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.options-container {
+    display: grid;
+    gap: 1rem;
+}
+
+.option-button {
+    padding: 1rem;
+    border: 2px solid #007bff;
+    border-radius: 8px;
+    background: white;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.option-button:hover:not([disabled]) {
+    background: #007bff;
+    color: white;
+}
+
+.option-button.selected {
+    background: #007bff;
+    color: white;
+}
+
+.option-button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.hidden {
+    display: none;
+}
+</style>
+
+{% endblock %}
+{% block extra_scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const quizId = '{{ quiz.id }}';
+        const playerName = '{{ player_name }}';
+        let currentQuestion = null;
+        let hasAnswered = false;
+        let socket = null;
+        let reconnectAttempts = 0;
+
+        function connectWebSocket() {
+            console.log('Attempting to connect WebSocket...');
+
+            socket = new WebSocket(
+                `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/quiz/${quizId}/`
+            );
+
+            socket.onopen = function () {
+                console.log('WebSocket connection established');
+                reconnectAttempts = 0; // Reset reconnect counter
+            };
+
+            socket.onerror = function (error) {
+                console.error('WebSocket error:', error);
+            };
+
+            socket.onclose = function (event) {
+                console.warn('WebSocket closed:', event);
+                if (reconnectAttempts < 5) {
+                    reconnectAttempts++;
+                    setTimeout(connectWebSocket, 3000); // Retry connection
+                } else {
+                    console.error('WebSocket reconnect failed after multiple attempts.');
+                }
+            };
+
+            socket.onmessage = function (e) {
+    console.group('WebSocket Message');
+    console.log('Raw data:', e.data);
+    
+    try {
+        const data = JSON.parse(e.data);
+        console.log('Parsed data:', data);
+        
+        if (data.type === 'new_question' && data.question) {
+            console.log('Received question:', data.question);
+            showQuestion(data.question);
+        } else {
+            console.log('Received other message type:', data.type);
+        }
+    } catch (error) {
+        console.error('Parse error:', error);
+    }
+    console.groupEnd();
+};
+        }
+        socket.addEventListener('open', function (event) {
+    console.log('WebSocket Connection Details:', {
+        readyState: socket.readyState,
+        protocol: socket.protocol,
+        url: socket.url
+    });
+})
+        connectWebSocket(); // Initial WebSocket connection
+
+        function showQuestion(question) {
+            try {
+                console.log('Displaying question:', question);
+
+                if (!question || !question.text) {
+                    console.error('Invalid question data:', question);
+                    return;
+                }
+
+                currentQuestion = question;
+                hasAnswered = false;
+
+                // Get DOM elements safely
+                const questionText = document.getElementById('question-text');
+                const optionsContainer = document.getElementById('options-container');
+                const questionContainer = document.getElementById('question-container');
+                const resultContainer = document.getElementById('result-container');
+
+                if (!questionText || !optionsContainer || !questionContainer || !resultContainer) {
+                    console.error('Required elements not found in DOM');
+                    return;
+                }
+
+                // Update question text
+                questionText.textContent = question.text;
+
+                // Clear existing options
+                optionsContainer.innerHTML = '';
+
+                // Create and append option buttons
+                if (!Array.isArray(question.options) || question.options.length === 0) {
+                    console.error('No valid options provided for question');
+                    return;
+                }
+
+                question.options.forEach((option, index) => {
+                    const button = document.createElement('button');
+                    button.className = 'option-button';
+                    button.textContent = option;
+                    button.onclick = () => submitAnswer(index);
+                    optionsContainer.appendChild(button);
+                });
+
+                // Ensure visibility of elements
+                questionContainer.style.display = 'block';
+                resultContainer.style.display = 'none';
+
+                // Start the timer if provided
+                if (question.timer && question.timer > 0) {
+                    startTimer(question.timer);
+                }
+            } catch (error) {
+                console.error('Error displaying question:', error);
+            }
+        }
+
+        function submitAnswer(answerIndex) {
+            if (hasAnswered) return;
+            hasAnswered = true;
+
+            const buttons = document.querySelectorAll('.option-button');
+            if (buttons.length === 0) {
+                console.error('No option buttons found');
+                return;
+            }
+
+            buttons.forEach(btn => btn.disabled = true);
+            if (buttons[answerIndex]) {
+                buttons[answerIndex].classList.add('selected');
+            }
+
+            // Send answer through WebSocket
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({
+                    type: 'submit_answer',
+                    quiz_id: quizId,
+                    question_id: currentQuestion.id,
+                    answer: answerIndex,
+                    player_name: playerName
+                }));
+            } else {
+                console.error('WebSocket not connected, unable to send answer');
+            }
+
+            // Show result
+            document.getElementById('result-container').style.display = 'block';
+        }
+
+        function startTimer(duration) {
+            const timerDisplay = document.getElementById('timer');
+            if (!timerDisplay) {
+                console.error('Timer display element not found');
+                return;
+            }
+
+            let timeLeft = duration;
+            timerDisplay.textContent = timeLeft;
+
+            const timerInterval = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = timeLeft;
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    if (!hasAnswered) {
+                        disableOptions();
+                    }
+                }
+            }, 1000);
+        }
+
+        function disableOptions() {
+            document.querySelectorAll('.option-button').forEach(btn => btn.disabled = true);
+        }
+
+        function showResult() {
+            const resultContainer = document.getElementById('result-container');
+            if (resultContainer) {
+                resultContainer.style.display = 'block';
+            } else {
+                console.error('Result container not found');
+            }
+        }
+
+        // Ensure all required elements are visible
+        function fixCSS() {
+            document.getElementById('question-container')?.style.setProperty('display', 'block', 'important');
+            document.getElementById('result-container')?.style.setProperty('display', 'none', 'important');
+            document.getElementById('options-container')?.style.setProperty('display', 'block', 'important');
+        }
+
+        fixCSS(); // Call once on page load
+    });
+</script>
+{% endblock %}

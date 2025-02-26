@@ -1,0 +1,172 @@
+{% extends 'api/base.html' %}
+{% load static %}
+
+{% block title %}Quiz Lobby - VoteItOut{% endblock %}
+
+{% block content %}
+<div class="quiz-lobby container">
+    <h1 class="quiz-title">{{ quiz.quiz_name }}</h1>
+    
+    <div class="join-info">
+        <div class="join-code-section">
+            <h2>Join Code</h2>
+            <div class="code-display">{{ quiz.join_code }}</div>
+        </div>
+        
+        <div class="qr-code-section">
+            <h2>Scan to Join</h2>
+            <img src="data:image/png;base64,{{ qr_code }}" alt="QR Code" class="qr-code">
+        </div>
+    </div>
+
+    <div class="players-section">
+        <h2>Players (<span id="player-count">0</span>)</h2>
+        <ul id="players-list" class="players-list"></ul>
+    </div>
+
+    <div class="controls">
+        <button id="start-quiz" class="btn btn-primary" disabled>Start Quiz</button>
+        <button id="copy-code" class="btn btn-secondary">Copy Join Code</button>
+    </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+    const quizId = '{{ quiz.id }}';
+    const joinCode = '{{ quiz.join_code }}';
+    const csrfToken = '{{ csrf_token }}';
+    
+    // WebSocket Connection
+    const socket = new WebSocket(
+        `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/quiz/${quizId}/`
+    );
+
+    socket.onopen = function () {
+        console.log('WebSocket connection established');
+        updateConnectionStatus('connected');
+        console.log('WebSocket connection established.');
+    };
+
+    socket.onerror = function (error) {
+        console.error('WebSocket error:', error);
+    };
+
+    socket.onclose = function (event) {
+        console.log('WebSocket connection closed:', event);
+    };
+
+    socket.onmessage = function (e) {
+    try {
+        const data = JSON.parse(e.data);
+        console.log('Received WebSocket message:', data);
+
+        switch (data.type) {
+            case 'player_joined':
+                if (data.player_name) {
+                    console.log('Player joined:', data.player_name);
+                    addPlayer(data.player_name);
+                } else {
+                    console.warn('Missing player name in message:', data);
+                }
+                break;
+            case 'quiz_started':
+                console.log('Quiz has started! Redirecting...');
+                window.location.href = `/quiz/${quizId}/host/`;
+                break;
+            case 'error':
+                console.error('Server error:', data.message);
+                // Show error to user
+                break;
+            default:
+                console.warn('Unhandled message type:', data.type);
+        }
+    } catch (error) {
+        console.error('Error processing message:', error);
+    }
+};
+
+    function handleWebSocketError(error) {
+    console.error('WebSocket error:', error);
+    // Show error to user
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'error-message';
+    errorDiv.textContent = 'Connection lost. Attempting to reconnect...';
+    document.querySelector('.quiz-header').appendChild(errorDiv);
+    
+    // Attempt reconnection
+    setTimeout(connectWebSocket, 3000);
+}
+
+    socket.onerror = handleWebSocketError;
+
+    function addPlayer(playerName) {
+    console.log('Adding player:', playerName);
+    const playersList = document.getElementById('players-list');
+    const playerCount = document.getElementById('player-count');
+
+    if (!playersList || !playerCount) {
+        console.error('Player list elements missing from DOM.');
+        return;
+    }
+
+    // Avoid duplicate players
+    const existingPlayer = Array.from(playersList.children)
+        .find(li => li.textContent === playerName);
+
+    if (!existingPlayer) {
+        const li = document.createElement('li');
+        li.className = 'player-item';
+        li.innerHTML = `
+            <span class="player-name">${playerName}</span>
+            <span class="player-status">✓</span>
+        `;
+        playersList.appendChild(li);
+        
+        // Update player count
+        playerCount.textContent = playersList.children.length;
+        
+        // Enable start button if there are players
+        const startButton = document.getElementById('start-quiz');
+        if (startButton) {
+            startButton.disabled = false;
+        }
+        
+        // Add animation
+        li.style.animation = 'slideIn 0.3s ease-out';
+    }
+}
+
+    document.getElementById('start-quiz').addEventListener('click', function() {
+        console.log('Start quiz button clicked');
+
+        fetch(`/quiz/${quizId}/start/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ action: 'start' })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Quiz start response:', data);
+            if (data.status === 'success') {
+                socket.send(JSON.stringify({ type: 'quiz_start', quiz_id: quizId }));
+            } else {
+                alert('Error starting quiz: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error starting quiz. Please try again.');
+        });
+    });
+
+    document.getElementById('copy-code').addEventListener('click', () => {
+        navigator.clipboard.writeText(joinCode)
+            .then(() => alert('Join code copied!'))
+            .catch(err => console.error('Failed to copy:', err));
+    });
+    
+</script>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends 'api/base.html' %}
+{% load static %}
+
+{% block title %}Enter Quiz PIN - VoteItOut{% endblock %}
+
+{% block content %}
+<div class="pin-entry container text-center">
+    <h1>Join a Quiz</h1>
+    <form id="pin-form" class="pin-form">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="pin-code" class="h4">Enter 4-digit Quiz PIN:</label>
+            <input type="text" 
+                   id="pin-code" 
+                   class="form-control text-center"
+                   maxlength="4" 
+                   pattern="\d{4}"
+                   autocomplete="off"
+                   required
+                   placeholder="Enter PIN">
+        </div>
+        <button type="submit" class="btn btn-primary mt-3">Join Quiz</button>
+    </form>
+</div>
+
+<script>
+document.getElementById('pin-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const pinCode = document.getElementById('pin-code').value;
+    
+    // Validate PIN format
+    if (!/^\d{4}$/.test(pinCode)) {
+        alert('Please enter a valid 4-digit PIN');
+        return;
+    }
+    
+    // Redirect to join quiz page
+    window.location.href = `/quiz/join/${pinCode}/`;
+});
+
+// Auto-focus PIN input
+document.getElementById('pin-code').focus();
+</script>
+{% endblock %}

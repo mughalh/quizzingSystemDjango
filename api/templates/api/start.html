@@ -1,0 +1,238 @@
+{% extends 'api/base.html' %}
+{% load static %}
+{% block title %}Create Quiz - VoteItOut{% endblock %}
+{% block content %}
+    <link rel="stylesheet" href="{% static '/api/css/styles.css' %}">
+    <h1>Create a New Quiz</h1>
+    <script src="https://cdn.jsdelivr.net/npm/@fingerprintjs/fingerprintjs@3/dist/fp.min.js"></script>
+    <script src="{% static 'api/js/script.js' %}"></script>
+    <form id="quiz-form" method="post" action="{% url 'api:save_quiz' %}">
+        {% csrf_token %}
+        <input type="hidden" id="visitor-id" name="visitor_id">
+        <div class="form-group">
+            <label for="quiz-name">Quiz Name:</label>
+            <input type="text" id="quiz-name" name="quiz_name" value="Quiz 1" required>
+        </div>
+        <div id="questions-container">
+            <div class="question-group">
+                <h3>Question 1</h3>
+                <textarea id="question1" name="question1" required style="width: 100%; height: 100px; resize: none;"></textarea>
+
+                <label for="timer1">Timer:</label>
+                <select id="timer1" name="timer1" onchange="handleTimerChange(this)">
+                    <option value="15">15s</option>
+                    <option value="30">30s</option>
+                    <option value="60">1min</option>
+                    <option value="custom">Custom</option>
+                </select>
+                <input type="number" id="custom-timer1" name="custom_timer1" placeholder="Custom time (seconds)" style="display: none;">
+
+                <div class="question-type">
+                    <label>Question Type:</label>
+                    <button type="button" class="type-btn" data-type="true_false" onclick="updateAnswerOptions(this)">True/False</button>
+                    <button type="button" class="type-btn selected" data-type="multiple_choice" onclick="updateAnswerOptions(this)">Multiple Choice</button>
+                    <button type="button" class="type-btn" data-type="open_ended" onclick="updateAnswerOptions(this)">Open Ended</button>
+                </div>
+
+                <div id="options1" class="options">
+                    <label>Options:</label>
+                    <input type="text" name="answer1_1" placeholder="Option 1" required>
+                    <input type="text" name="answer1_2" placeholder="Option 2" required>
+                    <input type="text" name="answer1_3" placeholder="Option 3" required>
+                    <input type="text" name="answer1_4" placeholder="Option 4" required>
+                </div>
+            </div>
+        </div>
+
+        <button type="button" id="add-question" onclick="addQuestion()">Add Question</button>
+        <button type="submit">Create Quiz</button>
+    </form>
+{% endblock %}
+
+{% block extra_scripts %}
+    <script>
+         const fpPromise = import('https://openfpcdn.io/fingerprintjs/v4')
+            .then(FingerprintJS => FingerprintJS.load());
+
+        // Get the visitor identifier when you need it.
+        fpPromise
+            .then(fp => fp.get())
+            .then(result => {
+                // This is the visitor identifier:
+                const visitorId = result.visitorId;
+                console.log(visitorId);
+
+                // Set the value of the hidden input field to the visitor ID
+                document.getElementById('visitor-id').value = visitorId;
+            });
+
+        let questionCount = 1;
+
+        // Function to add a new question
+        function addQuestion() {
+            const questionText = document.getElementById(`question${questionCount}`).value;
+
+            // If the current question is empty, show an alert and prevent adding the question
+            if (!questionText.trim()) {
+                alert('Question cannot be empty!');
+                return; // Prevent adding a new question if the current one is empty
+            }
+
+            questionCount++;
+            const container = document.getElementById('questions-container');
+            const newQuestion = document.createElement('div');
+            newQuestion.className = 'question-group';
+            newQuestion.innerHTML = `
+                <h3>Question ${questionCount}</h3>
+                <textarea id="question${questionCount}" name="question${questionCount}" required style="width: 100%; height: 100px; resize: none;"></textarea>
+
+                <label for="timer${questionCount}">Timer:</label>
+                <select id="timer${questionCount}" name="timer${questionCount}" onchange="handleTimerChange(this)">
+                    <option value="15">15s</option>
+                    <option value="30">30s</option>
+                    <option value="60">1min</option>
+                    <option value="custom">Custom</option>
+                </select>
+                <input type="number" id="custom-timer${questionCount}" name="custom_timer${questionCount}" placeholder="Custom time (seconds)" style="display: none;">
+
+                <div class="question-type">
+                    <label>Question Type:</label>
+                    <button type="button" class="type-btn" data-type="true_false" onclick="updateAnswerOptions(this)">True/False</button>
+                    <button type="button" class="type-btn selected" data-type="multiple_choice" onclick="updateAnswerOptions(this)">Multiple Choice</button>
+                    <button type="button" class="type-btn" data-type="open_ended" onclick="updateAnswerOptions(this)">Open Ended</button>
+                </div>
+
+                <div id="options${questionCount}" class="options">
+                    <label>Options:</label>
+                    <input type="text" name="answer${questionCount}_1" placeholder="Option 1" required>
+                    <input type="text" name="answer${questionCount}_2" placeholder="Option 2" required>
+                    <input type="text" name="answer${questionCount}_3" placeholder="Option 3" required>
+                    <input type="text" name="answer${questionCount}_4" placeholder="Option 4" required>
+                </div>
+            `;
+            container.appendChild(newQuestion);
+        }
+
+        // Function to handle timer changes
+        function handleTimerChange(selectElement) {
+            const customTimerInput = selectElement.parentElement.querySelector('input[type="number"]');
+            if (selectElement.value === 'custom') {
+                customTimerInput.style.display = 'block';
+            } else {
+                customTimerInput.style.display = 'none';
+            }
+        }
+
+        // Function to update answer options based on question type
+        function updateAnswerOptions(buttonElement) {
+            const questionGroup = buttonElement.closest('.question-group');
+            const optionsDiv = questionGroup.querySelector('.options');
+            const questionNumber = questionGroup.querySelector('h3').innerText.split(' ')[1];  // Extract question number
+            const questionType = buttonElement.getAttribute('data-type');
+
+            // Remove 'selected' class from all buttons and add it to the clicked one
+            questionGroup.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('selected'));
+            buttonElement.classList.add('selected');
+
+            // Clear the current options before adding new ones
+            optionsDiv.innerHTML = '';
+
+            // Update answer options based on question type
+            if (questionType === 'multiple_choice') {
+                optionsDiv.innerHTML = `
+                    <label>Options:</label>
+                    <input type="text" name="answer${questionNumber}_1" placeholder="Option 1" required>
+                    <input type="text" name="answer${questionNumber}_2" placeholder="Option 2" required>
+                    <input type="text" name="answer${questionNumber}_3" placeholder="Option 3" required>
+                    <input type="text" name="answer${questionNumber}_4" placeholder="Option 4" required>
+                `;
+            } else if (questionType === 'true_false') {
+                optionsDiv.innerHTML = `
+                    <label>Options:</label>
+                    <div class="true-false-options">
+                        <label>
+                            <input type="radio" name="answer${questionNumber}" value="True" required checked> True
+                        </label>
+                        <label>
+                            <input type="radio" name="answer${questionNumber}" value="False" required> False
+                        </label>
+                    </div>
+                `;
+            } else if (questionType === 'open_ended') {
+                optionsDiv.innerHTML = `
+                    <label>Answer:</label>
+                    <textarea name="answer${questionNumber}" placeholder="Write your answer here"></textarea>
+                `;
+            }
+        }
+// Find the form submission event listener and replace it with this:
+document.getElementById('quiz-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Gather all questions data
+    const questions = [];
+    const questionGroups = document.querySelectorAll('.question-group');
+    
+    questionGroups.forEach((group, index) => {
+        const questionNumber = index + 1;
+        const questionData = {
+            text: document.getElementById(`question${questionNumber}`).value,
+            type: group.querySelector('.type-btn.selected').getAttribute('data-type'),
+            timer: document.getElementById(`timer${questionNumber}`).value,
+        };
+
+        // Handle different question types
+        const questionType = questionData.type;
+        if (questionType === 'multiple_choice') {
+            questionData.options = [];
+            for (let i = 1; i <= 4; i++) {
+                const option = group.querySelector(`input[name="answer${questionNumber}_${i}"]`).value;
+                questionData.options.push(option);
+            }
+        } else if (questionType === 'true_false') {
+            const selectedValue = group.querySelector(`input[name="answer${questionNumber}"]:checked`);
+            questionData.options = ['True', 'False'];
+            questionData.correct_answer = selectedValue ? selectedValue.value : 'True';
+        }
+
+        questions.push(questionData);
+    });
+
+    // Create the request payload
+    const payload = {
+        quiz_name: document.getElementById('quiz-name').value,
+        visitor_id: document.getElementById('visitor-id').value,
+        questions: questions
+    };
+
+    // Send the request to create_quiz endpoint
+    fetch('{% url "api:create_quiz" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.status === 'success') {
+            // Redirect to quiz_start page using the returned quiz_id
+            window.location.href = `{% url "api:quiz_start" quiz_id=12345 %}`.replace('12345', data.quiz_id);
+        } else {
+            alert('Error creating quiz: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error creating quiz. Please try again.');
+    });
+});
+
+    </script>
+{% endblock %}

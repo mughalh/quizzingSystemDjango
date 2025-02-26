@@ -1,0 +1,135 @@
+{% extends 'api/base.html' %}
+{% load static %}
+
+{% block title %}Browse Quizzes{% endblock %}
+
+{% block content %}
+<style>
+    .quiz-browser {
+    padding: 2rem;
+}
+
+.browser-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.quiz-table-container {
+    overflow-x: auto;
+}
+
+.quiz-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.quiz-table th,
+.quiz-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid blue;
+}
+
+.quiz-table th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+    text-align: left;
+}
+
+.quiz-table td.actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+</style>
+<div class="quiz-browser container">
+    <header class="browser-header">
+        <h1>Your Quizzes ({{ quiz_count }})</h1>
+        <a href="{% url 'api:start' %}" class="btn btn-primary">Create New Quiz</a>
+
+    </header>
+
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="quiz-table-container">
+        <table class="quiz-table">
+            <thead>
+                <tr>
+                    <th>Quiz Name</th>
+                    <th>Date Created</th>
+                    <th>Join Code</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for quiz in quizzes %}
+                <tr>
+                    <td>{{ quiz.quiz_name }}</td>
+                    <td>{{ quiz.date_created|date:"M d, Y H:i" }}</td>
+                    <td>{{ quiz.join_code }}</td>
+                    <td class="actions">
+                        <a href="{% url 'api:quiz_start' quiz.id %}" class="btn btn-success btn-sm">
+                            Start
+                        </a>
+                        <a href="{% url 'api:quiz_update' quiz.id %}" class="btn btn-primary btn-sm">
+                            Edit
+                        </a>
+                        <button class="btn btn-danger btn-sm" onclick="deleteQuiz('{{ quiz.id }}')">
+                            Delete
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center">
+                        <p>No quizzes found. Create your first quiz!</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function deleteQuiz(quizId) {
+    if (confirm('Are you sure you want to delete this quiz?')) {
+        fetch(`/quiz/delete/${quizId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                window.location.reload();
+            } else {
+                alert('Error deleting quiz: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting quiz');
+        });
+    }
+}
+</script>
+{% endblock %}

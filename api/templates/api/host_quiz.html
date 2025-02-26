@@ -1,0 +1,265 @@
+{% extends 'api/base.html' %}
+{% load static %}
+
+{% block title %}Host Quiz - {{ quiz.quiz_name }}{% endblock %}
+
+{% block content %}
+
+<style>
+    .host-quiz {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.quiz-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.timer {
+    font-size: 3rem;
+    text-align: center;
+    margin: 1rem 0;
+    font-weight: bold;
+}
+
+.question-display {
+    background: #f8f9fa;
+    padding: 2rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+
+.option {
+    display: flex;
+    align-items: center;
+    margin: 1rem 0;
+    gap: 1rem;
+}
+
+.option-label {
+    font-weight: bold;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #007bff;
+    color: white;
+    border-radius: 50%;
+}
+
+.progress {
+    flex-grow: 1;
+    height: 30px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background: #28a745;
+    transition: width 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.controls {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 2rem;
+}
+
+.btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.btn-primary {
+    background: #007bff;
+    color: white;
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.btn:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+}
+</style>
+<div class="host-quiz container">
+    <header class="quiz-header">
+        <h1>{{ quiz.quiz_name }}</h1>
+        <div class="quiz-stats">
+            <span class="question-counter">Question <span id="current-question">1</span> of {{ questions|length }}</span>
+            <span class="player-count">Players: <span id="player-count">0</span></span>
+        </div>
+    </header>
+
+    <div class="question-container">
+        <div id="timer" class="timer">30</div>
+        <div id="current-question-display" class="question-display">
+            <!-- Questions will be loaded here dynamically -->
+        </div>
+        <div class="answer-stats" id="answer-stats">
+            <!-- Answer statistics will appear here -->
+        </div>
+    </div>
+
+    <div class="controls">
+        <button id="next-question" class="btn btn-primary" disabled>Next Question</button>
+        <button id="end-quiz" class="btn btn-danger">End Quiz</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const quizId = '{{ quiz.id }}';
+    const questions = JSON.parse('{{ questions_json|escapejs }}');
+    let currentQuestionIndex = 0;
+    let timer = null;
+    let answerCounts = {};
+
+    // WebSocket setup
+    const socket = new WebSocket(
+        `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/quiz/${quizId}/`
+    );
+
+    socket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        console.log('Received:', data);
+
+        if (data.type === 'answer_submitted') {
+            updateAnswerStats(data.answer);
+        }
+    };
+
+    function displayQuestion(index) {
+        const question = questions[index];
+        const display = document.getElementById('current-question-display');
+        document.getElementById('current-question').textContent = index + 1;
+
+        let html = `
+            <h2 class="question-text">${question.text}</h2>
+            <div class="options">`;
+
+        if (question.question_type === 'multiple_choice') {
+            question.options.forEach((option, i) => {
+                html += `<div class="option">
+                    <span class="option-label">${String.fromCharCode(65 + i)}</span>
+                    <span class="option-text">${option}</span>
+                    <div class="progress">
+                        <div class="progress-bar" id="progress-${i}" style="width: 0%">0%</div>
+                    </div>
+                </div>`;
+            });
+        } else if (question.question_type === 'true_false') {
+            html += `
+                <div class="option">
+                    <span class="option-label">T</span>
+                    <span class="option-text">True</span>
+                    <div class="progress">
+                        <div class="progress-bar" id="progress-true" style="width: 0%">0%</div>
+                    </div>
+                </div>
+                <div class="option">
+                    <span class="option-label">F</span>
+                    <span class="option-text">False</span>
+                    <div class="progress">
+                        <div class="progress-bar" id="progress-false" style="width: 0%">0%</div>
+                    </div>
+                </div>`;
+        }
+
+        html += `</div>`;
+        display.innerHTML = html;
+        startTimer(question.timer);
+        answerCounts = {};
+    }
+
+    function startTimer(duration) {
+        let timeLeft = duration;
+        const timerDisplay = document.getElementById('timer');
+        
+        if (timer) clearInterval(timer);
+        
+        timer = setInterval(() => {
+            timerDisplay.textContent = timeLeft;
+            
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                document.getElementById('next-question').disabled = false;
+                // Send timer ended message to all players
+                socket.send(JSON.stringify({
+                    type: 'timer_ended',
+                    question_index: currentQuestionIndex
+                }));
+            }
+            timeLeft--;
+        }, 1000);
+    }
+
+    function updateAnswerStats(answer) {
+        answerCounts[answer] = (answerCounts[answer] || 0) + 1;
+        const totalAnswers = Object.values(answerCounts).reduce((a, b) => a + b, 0);
+
+        // Update progress bars
+        Object.entries(answerCounts).forEach(([answer, count]) => {
+            const percentage = (count / totalAnswers) * 100;
+            const progressBar = document.getElementById(`progress-${answer}`);
+            if (progressBar) {
+                progressBar.style.width = `${percentage}%`;
+                progressBar.textContent = `${Math.round(percentage)}%`;
+            }
+        });
+    }
+
+    // Event Listeners
+    document.getElementById('next-question').addEventListener('click', () => {
+        currentQuestionIndex++;
+        
+        if (currentQuestionIndex < questions.length) {
+            displayQuestion(currentQuestionIndex);
+            document.getElementById('next-question').disabled = true;
+            
+            // Notify players of new question
+            socket.send(JSON.stringify({
+                type: 'new_question',
+                question_index: currentQuestionIndex
+            }));
+        } else {
+            // End of quiz
+            socket.send(JSON.stringify({
+                type: 'quiz_end'
+            }));
+            window.location.href = `/quiz/${quizId}/results/`;
+        }
+    });
+
+    document.getElementById('end-quiz').addEventListener('click', () => {
+        if (confirm('Are you sure you want to end the quiz?')) {
+            socket.send(JSON.stringify({
+                type: 'quiz_end'
+            }));
+            window.location.href = `/quiz/${quizId}/results/`;
+        }
+    });
+
+    // Start with first question
+    displayQuestion(0);
+</script>
+{% endblock %}

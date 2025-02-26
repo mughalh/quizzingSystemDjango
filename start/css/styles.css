@@ -1,0 +1,547 @@
+/* General Reset */
+
+body, html {
+    margin: 0;
+    padding: 0;
+    font-family: 'Arial', sans-serif;
+    background-color: #f4f4f9;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    flex-direction: column;
+    overflow: hidden; /* Prevent scrolling */
+}
+.true-false-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.answer-btn {
+    padding: 10px 20px;
+    border: 2px solid transparent;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.answer-btn.selected {
+    border-color: #000;
+    box-shadow: 0 0 5px rgba(0,0,0,0.3);
+}
+
+/* Container for the content */
+.container {
+    text-align: center;
+    background: white;
+    padding: 2rem;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    max-width: 400px;
+    width: 90%;
+    z-index: 1; /* Ensure content is above the canvas */
+}
+.true-false-buttons {
+    display: flex;
+    gap: 10px;
+    margin: 10px 0;
+}
+
+.answer-btn {
+    padding: 10px 20px;
+    border: 2px solid transparent;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.answer-btn.selected {
+    border-color: #000;
+    box-shadow: 0 0 5px rgba(0,0,0,0.3);
+}
+.pin-entry {
+    max-width: 400px;
+    margin: 4rem auto;
+}
+
+.pin-form input[type="text"] {
+    font-size: 2rem;
+    letter-spacing: 0.5rem;
+    padding: 1rem;
+    margin: 1rem 0;
+}
+
+.form-control:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+.pin-form .btn {
+    min-width: 150px;
+    font-size: 1.2rem;
+}
+.multiple-choice {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.option-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.option-wrapper input[type="text"] {
+    flex: 1;
+}
+
+.type-btn {
+    padding: 8px 15px;
+    margin: 0 5px;
+    border: 2px solid transparent;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.type-btn.selected {
+    border-color: #000;
+    background-color: #e9ecef;
+}
+/* Heading */
+h1 {
+    font-size: 2rem;
+    color: #333;
+    margin-bottom: 1.5rem;
+}
+
+/* Button Styles */
+.button {
+    display: inline-block;
+    padding: 1rem 2rem;
+    margin: 0.5rem;
+    font-size: 1rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    border: 3px solid;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    color: #333;
+    background-color: transparent;
+}
+    .join-code {
+        font-size: 2em;
+        font-weight: bold;
+        letter-spacing: 5px;
+        color: #007bff;
+    }
+
+    .players-list {
+        margin: 20px 0;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+    }
+
+    #players-list {
+        list-style: none;
+        padding: 0;
+    }
+
+    #players-list li {
+        padding: 10px;
+        margin: 5px 0;
+        background: #f8f9fa;
+        border-radius: 3px;
+    }
+
+    #qr-code img {
+        max-width: 200px;
+        margin: 20px 0;
+    }
+
+    .btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+/* Start New Button */
+.button.start {
+    border-color: #28a745; /* Green */
+}
+
+.button.start:hover {
+    background-color: #28a745;
+    color: white;
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(40, 167, 69, 0.5);
+}
+
+/* Browse Button */
+.button.browse {
+    border-color: #ff8c42; /* Orange */
+}
+
+.button.browse:hover {
+    background-color: #ff8c42;
+    color: white;
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(255, 140, 66, 0.5);
+}
+
+/* Footer */
+.footer {
+    margin-top: 2rem;
+    font-size: 0.9rem;
+    color: #666;
+    text-align: center;
+    z-index: 1; /* Ensure footer is above the canvas */
+}
+
+.footer a {
+    color: #28a745;
+    text-decoration: none;
+}
+
+.footer a:hover {
+    text-decoration: underline;
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+    h1 {
+        font-size: 1.5rem;
+    }
+
+    .button {
+        padding: 0.8rem 1.5rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* Canvas for Background Animation */
+#background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0; /* Place behind the content */
+}
+
+
+body, html {
+    margin: 0;
+    padding: 0;
+    font-family: 'Arial', sans-serif;
+    background-color: #f4f4f9;
+    min-height: 100vh;
+    overflow-y: auto; /* Allow vertical scrolling */
+}
+
+/* Container for the content */
+.container {
+    text-align: center;
+    background: white;
+    padding: 2rem;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    max-width: 400px;
+    width: 90%;
+    margin: 2rem auto; /* Add margin for better spacing */
+    z-index: 1;
+}
+
+/* Heading */
+h1 {
+    font-size: 2rem;
+    color: #333;
+    margin-bottom: 1.5rem;
+}
+
+/* Button Styles */
+.button {
+    display: inline-block;
+    padding: 1rem 2rem;
+    margin: 0.5rem;
+    font-size: 1rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    border: 3px solid;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    color: #333;
+    background-color: transparent;
+}
+
+/* Start New Button */
+.button.start {
+    border-color: #28a745; /* Green */
+}
+
+.button.start:hover {
+    background-color: #28a745;
+    color: white;
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(40, 167, 69, 0.5);
+}
+
+/* Browse Button */
+.button.browse {
+    border-color: #ff8c42; /* Orange */
+}
+
+.button.browse:hover {
+    background-color: #ff8c42;
+    color: white;
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(255, 140, 66, 0.5);
+}
+
+/* Footer */
+.footer {
+    margin-top: 2rem;
+    font-size: 0.9rem;
+    color: #666;
+    text-align: center;
+    z-index: 1; /* Ensure footer is above the canvas */
+}
+
+.footer a {
+    color: #28a745;
+    text-decoration: none;
+}
+
+.footer a:hover {
+    text-decoration: underline;
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+    h1 {
+        font-size: 1.5rem;
+    }
+
+    .button {
+        padding: 0.8rem 1.5rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* Form Styles for Quiz Creation */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 2px solid #ccc;
+    border-radius: 10px;
+    font-size: 1rem;
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.question-group {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    border: 2px solid #eee;
+    border-radius: 10px;
+}
+
+.question-type {
+    margin-top: 1rem;
+}
+
+.type-btn {
+    padding: 0.5rem 1rem;
+    margin: 0.25rem;
+    border: 2px solid #007bff;
+    border-radius: 10px;
+    background-color: transparent;
+    color: #007bff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.type-btn.active {
+    background-color: #007bff;
+    color: white;
+}
+
+.options {
+    margin-top: 1rem;
+}
+
+.options input {
+    display: block;
+    width: 100%;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    border: 2px solid #ccc;
+    border-radius: 10px;
+    font-size: 1rem;
+}
+
+button {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: bold;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+button#add-question {
+    background-color: #28a745;
+    color: white;
+    margin-right: 1rem;
+}
+
+button#add-question:hover {
+    background-color: #218838;
+}
+
+button[type="submit"] {
+    background-color: #007bff;
+    color: white;
+}
+
+button[type="submit"]:hover {
+    background-color: #0056b3;
+}
+
+.true-false-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin: 1rem 0;
+}
+
+.tf-btn {
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.true-btn {
+    background-color: #28a745;
+    color: white;
+}
+
+.false-btn {
+    background-color: #dc3545;
+    color: white;
+}
+
+.tf-btn:hover {
+    transform: scale(1.05);
+    opacity: 0.9;
+}
+
+.open-ended textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 0.5rem;
+    border: 2px solid #ccc;
+    border-radius: 5px;
+    resize: vertical;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f9;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.container {
+    background: white;
+    padding: 2rem;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    width: 80%;
+    max-width: 900px;
+}
+
+h1 {
+    font-size: 2rem;
+    color: #333;
+    margin-bottom: 1.5rem;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+table, th, td {
+    border: 1px solid #ddd;
+}
+
+th, td {
+    padding: 0.75rem;
+    text-align: center;
+}
+
+th {
+    background-color: #007bff;
+    color: white;
+}
+
+.button {
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    margin: 0.25rem;
+    text-decoration: none;
+}
+
+.button.select {
+    background-color: #28a745;
+    color: white;
+}
+
+.button.update {
+    background-color: #ff8c42;
+    color: white;
+}
+
+.button.delete {
+    background-color: #dc3545;
+    color: white;
+}
+
+.button:hover {
+    opacity: 0.8;
+}

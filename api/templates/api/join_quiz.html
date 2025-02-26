@@ -1,0 +1,51 @@
+{% extends 'api/base.html' %}
+
+{% block content %}
+<div class="join-quiz-container">
+    <h1>Join Quiz</h1>
+    <h2>{{ quiz.quiz_name }}</h2>
+    
+    <form id="join-form" class="join-form">
+        <div class="form-group">
+            <label for="player-name">Your Name:</label>
+            <input type="text" id="player-name" name="player_name" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Join Quiz</button>
+    </form>
+</div>
+
+<script>
+document.getElementById('join-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    fetch(window.location.href, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: new URLSearchParams({
+            'player_name': document.getElementById('player-name').value
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Connect to WebSocket for real-time updates
+            const socket = new WebSocket(
+                `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/quiz/${data.quiz_id}/`
+            );
+            
+            // Redirect to waiting room
+            window.location.href = `/quiz/${data.quiz_id}/waiting/`;
+        } else {
+            alert('Error joining quiz: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error joining quiz. Please try again.');
+    });
+});
+</script>
+{% endblock %}

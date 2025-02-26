@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}VoteItOut{% endblock %}</title>
+
+    {% load static %}
+    <link rel="stylesheet" href="{% static '/api/css/styles.css' %}">
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <canvas id="background"></canvas>
+
+    <div class="container">
+        {% block content %}
+        {% endblock %}
+    </div>
+
+    <div class="footer">
+        <p>&copy; 2023 Quiz Fun. All rights reserved.</p>
+        <a href="#">Click here for more info</a>
+    </div>
+
+    <script src="{% static 'api/js/script.js' %}"></script>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

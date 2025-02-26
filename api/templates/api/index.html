@@ -1,0 +1,20 @@
+{% extends 'api/base.html' %}
+
+{% load static %}
+<link rel="stylesheet" href="{% static 'api/css/styles.css' %}">
+{% block title %}Create Quiz - VoteItOut{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Welcome to VoteItOut!</h1>
+    <p>What would you like to do?</p>
+    <div>
+        <a href="{% url 'api:start' %}" class="button start">Start New</a>
+        <a href="{% url 'api:browse' %}" class="button browse">Browse</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+    <script src="{% static 'api/js/script.js' %}"></script>
+{% endblock %}
