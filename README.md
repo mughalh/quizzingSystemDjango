@@ -18,7 +18,7 @@ A real-time quiz application built with Django and WebSockets that allows hosts 
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/VoteItOut.git
+git clone https://github.com/mughalh/VoteItOut.git
 cd VoteItOut
 ```
 
